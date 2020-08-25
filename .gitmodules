@@ -1,0 +1,3 @@
+[submodule "Thirdparty/sse2neon"]
+	path = Thirdparty/sse2neon
+	url = https://github.com/jratcliff63367/sse2neon.git

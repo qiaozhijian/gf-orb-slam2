@@ -1,0 +1,33 @@
+all: graphview
+
+#CFLAGS=-ansi -D__GL_FORCE_AUTOCHECK -D_DONT_USE_STACK_GUARD -I . -I /usr/local/include/libpng/ -Wno-deprecated-declarations
+CFLAGS=-ansi -D_DONT_USE_STACK_GUARD -I . -I /usr/local/include/libpng/ -Wno-deprecated-declarations
+OBJFILES=Main.o PNGLoad.o CallStack.o DCT.o Dir.o Jpeg.o NewFix.o StlUtils.o Tga.o Thread.o Timer.o Vector.o BufferObjects.o FrameBuffer.o GLES20Emu.o Shader.o Texture.o TextureUtil.o Transform.o FontTexture2.o BitmapFont2.o UniConv.o UniBlocks.o
+
+graphview: $(OBJFILES)
+	g++ -L /usr/local/lib/ -framework OpenGL -framework GLUT -lpng -lz -lpthread -o graphview $(OBJFILES)
+# note that this is not very tested, you may also need -framework Cocoa or something like that
+# also note that if the build fails, just try putting the linker flags (the ones starting
+# with -l) at the end of the line, after $(OBJFILES)
+
+%.o: %.cpp
+	g++ $(CFLAGS) -c $< -o $@
+
+%.o: ../UberLame_src/%.cpp
+	g++ $(CFLAGS) -c $< -o $@
+
+%.o: ../UberLame_src/gles2/%.cpp
+	g++ $(CFLAGS) -c $< -o $@
+
+%.o: ../UberLame_src/iface/%.cpp
+	g++ $(CFLAGS) -c $< -o $@
+
+remake:
+	rm -f *.o graphview
+	make test
+
+clean:
+	rm -f *.o graphview
+
+test: graphview
+	./graphview solution_smcath.txt small_cathedral.graph

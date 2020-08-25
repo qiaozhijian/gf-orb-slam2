@@ -1,0 +1,9 @@
+<launch>
+
+<arg name="path_data_logging" />
+
+<!-- initialize rosbag recording -->
+<node name="map_logging" type="record" pkg="rosbag" args="/ORB_SLAM/Map -O $(arg path_data_logging).bag">
+</node>
+
+</launch>
