@@ -343,7 +343,7 @@ target_link_libraries(bin_vocabulary ${PROJECT_NAME})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Examples/ROS/GF_ORB_SLAM2)
 
 # Node for monocular camera
-add_executable(Mono Examples/ROS/GF_ORB_SLAM2/src/ros_mono.cc)
+add_executable(Mono ${PROJECT_SOURCE_DIR}/Examples/ROS/GF_ORB_SLAM2/src/ros_mono.cc)
 
 target_link_libraries(Mono
 ${LIBS}
@@ -363,7 +363,7 @@ ${PROJECT_NAME}
 #)
 
 # Node for stereo camera
-add_executable(Stereo Examples/ROS/GF_ORB_SLAM2/src/ros_stereo.cc)
+add_executable(Stereo ${PROJECT_SOURCE_DIR}/Examples/ROS/GF_ORB_SLAM2/src/ros_stereo.cc)
     # src/path_smoothing_ros/cubic_spline_interpolator.cpp)
 
 target_link_libraries(Stereo
@@ -373,7 +373,7 @@ ${PROJECT_NAME}
 )
 
 # Node for RGB-D camera
-add_executable(RGBD Examples/ROS/GF_ORB_SLAM2/src/ros_rgbd.cc)
+add_executable(RGBD ${PROJECT_SOURCE_DIR}/Examples/ROS/GF_ORB_SLAM2/src/ros_rgbd.cc)
 
 # string(REPLACE "/opt/ros/kinetic/lib/x86_64-linux-gnu/libopencv_core3.so.3.3.1;" "" catkin_LIBRARIES "${catkin_LIBRARIES}")
 MESSAGE("catkin_LIBRARIES: " ${catkin_LIBRARIES})
@@ -382,7 +382,7 @@ target_link_libraries(RGBD
 ${LIBS}
 ${catkin_LIBRARIES}
 ${PROJECT_NAME}
-)
+        )
 
 
 # Build test cases
@@ -403,7 +403,7 @@ add_executable(testObs
 target_link_libraries(testObs
     GL
     glut
-    GLU
+        GLU
     ${PROJECT_NAME}
     ${GTest_LIBRARIES}
     ${SLAM_PLUS_PLUS_LIBRARIES}

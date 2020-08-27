@@ -694,7 +694,7 @@ void Frame::UndistortKeyPointsStereo()
         mat.at<float>(i,0)=mvKeys[i].pt.x;
         mat.at<float>(i,1)=mvKeys[i].pt.y;
     }
-    // Undistort points
+    // Undistort points 变成N行一列通道为2的mat
     mat=mat.reshape(2);
 #ifdef USE_FISHEYE_DISTORTION
     cv::fisheye::undistortPoints(mat,mat,mK_ori,mDistCoef,mR,mP);

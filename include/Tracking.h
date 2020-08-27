@@ -394,6 +394,8 @@ protected:
     // Map initialization for stereo and RGB-D
     void StereoInitialization();
 
+    void RestartTrack();
+
     // Map initialization for monocular
     void MonocularInitialization();
     void CreateInitialMapMonocular();
@@ -533,6 +535,8 @@ protected:
 
     //Motion Model
     cv::Mat mVelocity;
+
+    cv::Mat mlastMapmLastFrameTcw;
 
     //Color order (true RGB, false BGR, ignored if grayscale)
     bool mbRGB;

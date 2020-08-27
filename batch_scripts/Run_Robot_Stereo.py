@@ -5,16 +5,12 @@ import subprocess
 import time
 import signal
 
-# SeqNameList = ['MH_01_easy', 'MH_03_medium', 'MH_05_difficult', 'V2_02_medium', 'not_exist'];
-# SeqNameList = ['V1_03_difficult', 'V2_02_medium', 'V2_03_difficult', 'not_exist'];
-# SeqNameList = ['MH_01_easy', 'MH_02_easy', 'MH_03_medium', 'MH_04_difficult', 'MH_05_difficult', 'V1_01_easy', 'V1_02_medium', 'V1_03_difficult', 'V2_01_easy', 'V2_02_medium', 'V2_03_difficult', 'not_exist'];
-SeqNameList = ['V1_01_easy', 'not_exist'];
+# SeqNameList = {'01':'2020-07-26-19-47-34'};
+SeqNameList = {'08':'2020-08-12-16-47-23'};
 
-Result_root = '/media/qzj/Document/grow/research/slamDataSet/EuRoC/GF_ORB2_Stereo_Baseline/'
-# Result_root = '/mnt/DATA/tmp/EuRoC/Lmk_800/ORB2_active_measErr_withFrameInfo/'
+Result_root = '/media/qzj/Document/grow/research/slamDataSet/sweepRobot/round3/GF_ORB2_Stereo_Baseline/'
 
-Number_GF_List = [800]; # [400, 600, 800, 1000, 1500, 2000]; # 
-# Number_GF_List = [60, 80, 100, 150, 200];
+Number_GF_List = [800]; # [400, 600, 800, 1000, 1500, 2000]; #
 Num_Repeating = 1 # 10 # 20 #  5 # 
 SleepTime = 2 # 10 # 25
 
@@ -34,7 +30,6 @@ class bcolors:
 subprocess.Popen('roscore', shell=True)
 time.sleep(2)
 
-
 # subprocess.Popen('rosrun rviz rviz -d /media/qzj/Software/code/catkin_ws/src/gf_orb_slam2/rviz/viz_Map3D.rviz', shell=True)
 
 for ri, num_gf in enumerate(Number_GF_List):
@@ -48,28 +43,22 @@ for ri, num_gf in enumerate(Number_GF_List):
         cmd_mkdir = 'mkdir -p ' + Experiment_dir
         subprocess.call(cmd_mkdir, shell=True)
 
-        for sn, sname in enumerate(SeqNameList):
+        for key, value in SeqNameList.items():
             
             print(bcolors.ALERT + "====================================================================" + bcolors.ENDC)
 
-            SeqName = SeqNameList[sn] # + '_blur_5'
+            SeqName = key # + '_blur_5'
             print(bcolors.ALERT + "Round: " + str(iteration + 1) + "; Seq: " + SeqName)
 
-            # File_Setting = './Examples/Stereo/EuRoC.yaml'
-            # File_Setting = '../../ORB_Data/EuRoC_yaml/EuRoC_stereo_lmk400.yaml'
-            # File_Setting = '../../ORB_Data/EuRoC_yaml/EuRoC_stereo_lmk600.yaml'
-            File_Setting = config_path + '/EuRoC_yaml/EuRoC_stereo_lmk800.yaml'
-            # File_Setting = '../../ORB_Data/EuRoC_yaml/EuRoC_stereo_lmk1000.yaml'
-            # File_Setting = '../../ORB_Data/EuRoC_yaml/EuRoC_stereo_lmk1500.yaml'
-            # File_Setting = '../../ORB_Data/EuRoC_yaml/EuRoC_stereo_lmk2000.yaml'
-            # File_Setting = '../../ORB_Data/EuRoC_yaml/EuRoC_stereo_lmk2500.yaml'
+            File_Setting = config_path + '/SweepRobot_yaml/Robot_stereo_lmk' + str(num_gf) + '.yaml'
 
             # File_Vocab   = '../ORB_Data/ORBvoc.txt'
             File_Vocab   = config_path + '/ORBvoc.bin'
-            File_rosbag  = '/media/qzj/Document/grow/research/slamDataSet/EuRoC/BagFiles/' + SeqName + '.bag'
-            File_traj = Experiment_dir + '/' + SeqName
+            File_rosbag  = '/media/qzj/Document/grow/research/slamDataSet/sweepRobot/round3/' + SeqName + '/' + value + '.bag'
+            File_traj = Experiment_dir + '/' + SeqName + '/'
             # mkdir for File_traj
             cmd_mkdir = 'mkdir -p ' + File_traj
+            File_traj = File_traj + SeqName
             subprocess.call(cmd_mkdir, shell=True)
 
             #还是不能通过clion直接运行,只能在命令行里运行
