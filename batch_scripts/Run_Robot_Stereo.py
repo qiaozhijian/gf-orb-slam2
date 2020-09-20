@@ -6,7 +6,8 @@ import time
 import signal
 
 # SeqNameList = {'01':'2020-07-26-19-47-34'};
-SeqNameList = {'08':'2020-08-12-16-47-23'};
+SeqNameList = {'07':'2020-08-12-16-41-28'};
+# SeqNameList = {'08':'2020-08-12-16-47-23'};
 
 Result_root = '/media/qzj/Document/grow/research/slamDataSet/sweepRobot/round3/GF_ORB2_Stereo_Baseline/'
 

@@ -338,30 +338,7 @@ add_executable(bin_vocabulary tools/bin_vocabulary.cc)
 target_link_libraries(bin_vocabulary ${PROJECT_NAME})
 
 
-# Build ROS Nodes
-
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Examples/ROS/GF_ORB_SLAM2)
-
-# Node for monocular camera
-add_executable(Mono ${PROJECT_SOURCE_DIR}/Examples/ROS/GF_ORB_SLAM2/src/ros_mono.cc)
-
-target_link_libraries(Mono
-${LIBS}
-${catkin_LIBRARIES}
-${PROJECT_NAME}
-)
-
-# Node for monocular camera (Augmented Reality Demo)
-#add_executable(MonoAR
-#src/AR/ros_mono_ar.cc
-#src/AR/ViewerAR.h
-#src/AR/ViewerAR.cc
-#)
-
-#target_link_libraries(MonoAR
-#${LIBS}
-#)
-
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/Examples/ROS)
 # Node for stereo camera
 add_executable(Stereo ${PROJECT_SOURCE_DIR}/Examples/ROS/GF_ORB_SLAM2/src/ros_stereo.cc)
     # src/path_smoothing_ros/cubic_spline_interpolator.cpp)
@@ -372,17 +349,6 @@ ${catkin_LIBRARIES}
 ${PROJECT_NAME}
 )
 
-# Node for RGB-D camera
-add_executable(RGBD ${PROJECT_SOURCE_DIR}/Examples/ROS/GF_ORB_SLAM2/src/ros_rgbd.cc)
-
-# string(REPLACE "/opt/ros/kinetic/lib/x86_64-linux-gnu/libopencv_core3.so.3.3.1;" "" catkin_LIBRARIES "${catkin_LIBRARIES}")
-MESSAGE("catkin_LIBRARIES: " ${catkin_LIBRARIES})
-
-target_link_libraries(RGBD
-${LIBS}
-${catkin_LIBRARIES}
-${PROJECT_NAME}
-        )
 
 
 # Build test cases

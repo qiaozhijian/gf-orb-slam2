@@ -56,9 +56,7 @@ using namespace std;
 class ImageGrabber {
 public:
     ImageGrabber(ORB_SLAM2::System *pSLAM) : mpSLAM(pSLAM) {
-#ifdef MAP_PUBLISH
-        mnMapRefreshCounter = 0;
-#endif
+
     }
 
     void GrabStereo(const sensor_msgs::ImageConstPtr &msgLeft, const sensor_msgs::ImageConstPtr &msgRight);
@@ -75,12 +73,7 @@ public:
     cv::Mat Tmat;
 
     ros::Publisher mpCameraPosePublisher, mpCameraPoseInIMUPublisher;
-    //    ros::Publisher mpDensePathPub;
 
-#ifdef MAP_PUBLISH
-    size_t mnMapRefreshCounter;
-    ORB_SLAM2::MapPublisher* mpMapPub;
-#endif
 
 #ifdef FRAME_WITH_INFO_PUBLISH
     ros::Publisher mpFrameWithInfoPublisher;
@@ -92,11 +85,7 @@ int main(int argc, char **argv) {
     ros::init(argc, argv, "Stereo");
     ros::start();
 
-#ifdef ENABLE_MAP_IO
-    if(argc != 10)
-#else
     if (argc != 9)
-#endif
     {
         for (int i = 0; i < argc; i++)
             cerr << argv[i] << endl;
@@ -117,27 +106,11 @@ int main(int argc, char **argv) {
 
     SLAM.SetConstrPerFrame(std::atoi(argv[3]));
 
-    // convert budget input from ms to sec
-    // SLAM.SetBudgetPerFrame(FLAGS_budget_per_frame*1e-3);
-
-
-#ifdef LOGGING_KF_LIST
-    std::string fNameRealTimeBA = std::string(argv[8]) + "_Log_BA.txt";
-    std::cout << std::endl << "Saving BA Log to Log_BA.txt" << std::endl;
-#endif
 
 #ifdef REALTIME_TRAJ_LOGGING
     std::string fNameRealTimeTrack = std::string(argv[8]) + "_AllFrameTrajectory.txt";
     std::cout << std::endl << "Saving AllFrame Trajectory to AllFrameTrajectory.txt" << std::endl;
     SLAM.SetRealTimeFileStream(fNameRealTimeTrack);
-#endif
-
-#ifdef ENABLE_MAP_IO
-    SLAM.LoadMap(std::string(argv[9]));
-    // SLAM.LoadMap(std::string(argv[8]) + "_Map/");
-    //
-    SLAM.ForceRelocTracker();
-    // SLAM.ForceInitTracker();
 #endif
 
     ImageGrabber igb(&SLAM);
@@ -179,17 +152,12 @@ int main(int argc, char **argv) {
             return -1;
         }
 
-#ifdef USE_FISHEYE_DISTORTION
-        cv::fisheye::initUndistortRectifyMap(K_l,D_l,R_l,P_l,cv::Size(cols_l,rows_l),CV_32F,igb.M1l,igb.M2l);
-        cv::fisheye::initUndistortRectifyMap(K_r,D_r,R_r,P_r,cv::Size(cols_r,rows_r),CV_32F,igb.M1r,igb.M2r);
-        cout << "finish creating equidistant rectification map!" << endl;
-#else
+
         cv::initUndistortRectifyMap(K_l, D_l, R_l, P_l.rowRange(0, 3).colRange(0, 3), cv::Size(cols_l, rows_l), CV_32F,
                                     igb.M1l, igb.M2l);
         cv::initUndistortRectifyMap(K_r, D_r, R_r, P_r.rowRange(0, 3).colRange(0, 3), cv::Size(cols_r, rows_r), CV_32F,
                                     igb.M1r, igb.M2r);
         cout << "finish creating rad-tan rectification map!" << endl;
-#endif
 
     }
 
@@ -223,11 +191,6 @@ int main(int argc, char **argv) {
     igb.mpFrameWithInfoPublisher = nh.advertise<sensor_msgs::Image>("ORB_SLAM/frame_with_info", 100);
 #endif
 
-#ifdef MAP_PUBLISH
-    igb.mpMapPub = new ORB_SLAM2::MapPublisher(SLAM.mpMap);
-    ROS_INFO_STREAM("Initialized map publisher");
-#endif
-
     while (ros::ok())
         ros::spin();
     // ros::spin();
@@ -240,23 +203,6 @@ int main(int argc, char **argv) {
 #ifdef LOCAL_BA_TIME_LOGGING
     SLAM.SaveMappingLog(std::string(argv[8]) + "_Log_Mapping.txt");
 #endif
-    //
-    // SLAM.SaveLmkLog( std::string(argv[8]) + "_Log_lmk.txt" );
-
-/*
-#ifdef ENABLE_MAP_IO
-
-// #ifdef MAP_PUBLISH
-// publish map points
-//  for (size_t i=0; i<10; ++i)
-//   igb.mpMapPub->Refresh();
-// #endif
-  
-  SLAM.SaveMap(std::string(argv[9]));
-  // SLAM.SaveMap(std::string(argv[8]) + "_Map/");
-  
-#endif
-*/
 
     std::cout << "Finished saving!" << std::endl;
 
@@ -541,13 +487,5 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr &msgLeft, const s
     }
 #endif
 
-
-#ifdef MAP_PUBLISH
-    if (mnMapRefreshCounter % 30 == 1) {
-      // publish map points
-      mpMapPub->Refresh();
-    }
-    mnMapRefreshCounter ++;
-#endif
 
 }

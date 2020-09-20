@@ -1,0 +1,2 @@
+- setup-file:
+    local-name: /media/qzj/Software/code/catkin_ws/src/.gf_orb_slam2/cmake-build-release/devel/setup.sh
