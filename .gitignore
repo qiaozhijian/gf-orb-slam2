@@ -35,3 +35,5 @@ lib/
 .kdev4/*
 *.kdev4
 .idea/
+
+cmake-*
