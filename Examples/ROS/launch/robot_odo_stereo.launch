@@ -1,0 +1,24 @@
+<launch>
+    <!--启动ORB-SLAM3 stereo respawn="true" 如果该节点启动不成功会再次尝试启动-->
+    <node name ="Stereo" pkg="gf_orb_slam2" type="Stereo"
+        args="/media/qzj/Software/code/catkin_ws/src/ORB_Data/ORBvoc.bin
+        /media/qzj/Software/code/catkin_ws/src/ORB_Data/SweepRobot_yaml/Robot_stereo_lmk800.yaml
+        800 false true /cam0/image_raw /cam1/image_raw
+        /media/qzj/Document/grow/research/slamDataSet/sweepRobot/round3/GF_ORB2_Stereo_Baseline/ObsNumber_800_Round1/01/01" output="screen">
+    </node>
+
+        <arg name="bag" default="/media/qzj/Document/grow/research/slamDataSet/sweepRobot/round3/01/2020-07-26-19-47-34.bag"/>
+<!--        <arg name="bag" default="/media/qzj/Document/grow/research/slamDataSet/sweepRobot/round3/02/2020-07-26-19-49-21.bag"/>-->
+<!--    <arg name="bag" default="/media/qzj/Document/grow/research/slamDataSet/sweepRobot/round3/03/2020-07-26-19-50-56.bag"/>-->
+<!--        <arg name="bag" default="/media/qzj/Document/grow/research/slamDataSet/sweepRobot/round3/04/2020-07-29-18-40-03.bag"/>-->
+<!--        <arg name="bag" default="/media/qzj/Document/grow/research/slamDataSet/sweepRobot/round3/05/2020-07-29-18-41-52.bag"/>-->
+    <!--    <arg name="bag" default="/media/qzj/Document/grow/research/slamDataSet/sweepRobot/round3/06/2020-07-29-18-43-57.bag"/>-->
+<!--        <arg name="bag" default="/media/qzj/Document/grow/research/slamDataSet/sweepRobot/round3/07/2020-08-12-16-41-28.bag"/>-->
+<!--        <arg name="bag" default="/media/qzj/Document/grow/research/slamDataSet/sweepRobot/round3/08/2020-08-12-16-47-23.bag"/>-->
+<!--        <arg name="bag" default="/media/qzj/Document/grow/research/slamDataSet/sweepRobot/round3/09/2020-08-12-16-54-51.bag"/>-->
+    <!-- play the dataset -->
+<!--    <node pkg="rosbag" type="play" name="rosbag" args="&#45;&#45;pause &#45;&#45;clock $(arg bag)" output="screen"/>-->
+        <node pkg="rosbag" type="play" name="rosbag" args="--pause --clock $(arg bag)"/>
+
+<!--    <node name="rvizvisualisation" pkg="rviz" type="rviz" output="log" args="-d $(find orb_slam3)/config/vins_rviz_config.rviz" />-->
+</launch>

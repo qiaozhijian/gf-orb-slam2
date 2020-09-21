@@ -43,6 +43,11 @@
 
 using namespace std;
 
+cTime time_ORB_extraction(0.0, 0);
+cTime time_Init_track(0.0, 0);
+cTime time_track_map(0.0, 0);
+cTime time_post_proc(0.0, 0);
+
 namespace ORB_SLAM2 {
 
     Tracking::Tracking(System *pSys, ORBVocabulary *pVoc, FrameDrawer *pFrameDrawer, MapDrawer *pMapDrawer, Map *pMap,
@@ -301,67 +306,6 @@ namespace ORB_SLAM2 {
         mCurrentInfoMat.zeros();
 
         mnInitStereo = 0;
-
-
-#ifdef INIT_WITH_ARUCHO
-                                                                                                                                //
-    mTw_align = cv::Mat::eye(4,4,CV_32F);
-    mTw_align.at<float>(0, 3) = fSettings["InitialAnchor.x"];
-    mTw_align.at<float>(1, 3) = fSettings["InitialAnchor.y"];
-    mTw_align.at<float>(2, 3) = fSettings["InitialAnchor.z"];
-    //
-    float qw = fSettings["InitialAnchor.qw"];
-    float qx = fSettings["InitialAnchor.qx"];
-    float qy = fSettings["InitialAnchor.qy"];
-    float qz = fSettings["InitialAnchor.qz"];
-    arma::rowvec qw_align = {qw, qx, qy, qz};
-    cv::Mat Rw_align = cv::Mat(3, 3, CV_32F);
-    QUAT2DCM_float(qw_align, Rw_align);
-    Rw_align.copyTo(mTw_align.rowRange(0,3).colRange(0,3));
-    std::cout << "Transform hard-coded in world frame: " << mTw_align << std::endl;
-    /*
-float init_bias_x = fSettings["InitialBias.x"];
-float init_bias_y = fSettings["InitialBias.y"];
-float init_bias_z = fSettings["InitialBias.z"];
-float init_bias_qw = fSettings["InitialBias.qw"];
-float init_bias_qx = fSettings["InitialBias.qx"];
-float init_bias_qy = fSettings["InitialBias.qy"];
-float init_bias_qz = fSettings["InitialBias.qz"];
-mT_bias = cv::Mat::eye(4,4,CV_32F);
-mT_bias.at<float>(0, 3) = init_bias_x;
-mT_bias.at<float>(1, 3) = init_bias_y;
-mT_bias.at<float>(2, 3) = init_bias_z;
-//
-arma::rowvec q_bias = {init_bias_qw, init_bias_qx, init_bias_qy, init_bias_qz};
-q_bias = qNormalize(q_bias);
-cv::Mat R_bias = cv::Mat(3, 3, CV_32F);
-QUAT2DCM_float(q_bias, R_bias);
-R_bias.copyTo(mT_bias.rowRange(0,3).colRange(0,3));
-*/
-    //
-    mpCharuco = new ChArUco(mK, mDistCoef, "../tools/charuco_param.yml",
-                            false, true);
-#endif
-
-        //#ifdef PRED_WITH_ODOM
-        //    mvOdomBuf.reserve(800);
-        //    //
-        //#endif
-
-#if defined ENABLE_PLANNER_PREDICTION
-                                                                                                                                mpStatePred = new TrajectoryStatePredictor();
-
-    // TODO instead hard-coding body to camera transform, subscribe to tf and query the transform
-    Tc2b = cv::Mat::eye(4, 4, CV_32F);
-    cv::Mat Rmat(3,3,CV_32F);
-    QUAT2DCM_float(-0.500, 0.500, -0.500, 0.500, Rmat);
-    Rmat.copyTo(Tc2b.rowRange(0,3).colRange(0,3));
-    Tc2b.at<float>(0,3) = 0.094;
-    Tc2b.at<float>(1,3) = -0.074;
-    Tc2b.at<float>(2,3) = 0.280;
-
-    Tb2c = Tc2b.inv();
-#endif
 
 
 #if defined DELAYED_MAP_MATCHING && defined LOCAL_SEARCH_USING_HASHING
@@ -1252,13 +1196,11 @@ void Tracking::PredictingOdom(const double & time_prev, const double & time_curr
         // push the time log of current frame into the vector
         mFrameTimeLog.push_back(logCurrentFrame);
         //    cout << "Done with tracking!" << endl;
-
         std::cout << "Time cost break down: " << std::endl
-                  << "ORB extraction " << logCurrentFrame.time_ORB_extraction << "; "
-                  << "Init tracking " << logCurrentFrame.time_track_motion + logCurrentFrame.time_track_frame << "; "
-                  << "Map tracking " << logCurrentFrame.time_track_map << "; "
-                  << "Post proc. " << logCurrentFrame.time_post_proc << std::endl;
-
+                  << "ORB extraction " << time_ORB_extraction.update(logCurrentFrame.time_ORB_extraction)<< "; "
+                  << "Init tracking " << time_Init_track.update(logCurrentFrame.time_track_motion + logCurrentFrame.time_track_frame) << "; "
+                  << "Map tracking " << time_track_map.update(logCurrentFrame.time_track_map) << "; "
+                  << "Post proc. " << time_post_proc.update(logCurrentFrame.time_post_proc) << std::endl;
     }
 
     void Tracking::RestartTrack() {
@@ -1285,28 +1227,8 @@ void Tracking::PredictingOdom(const double & time_prev, const double & time_curr
 
     void Tracking::StereoInitialization() {
         if (mCurrentFrame.N > THRES_INIT_MPT_NUM) {
-            //
-#ifdef INIT_WITH_ARUCHO
-                                                                                                                                    // query the pose from ChArUco
-        cv::Mat Twc_aruco = cv::Mat::eye(4,4,CV_32F);
-        if (mpCharuco->process(mImGray, Twc_aruco)) {
-            // Set Frame pose to the origin
-            cv::Mat Tcw_aruco = Twc_aruco.inv();
-            std::cout << "Transform established from ChArUco: " << Tcw_aruco << std::endl;
-            //
-            Tcw_aruco = mTw_align * Tcw_aruco;
-            std::cout << "Further aligned to world frame: " << Tcw_aruco << std::endl;
-            mCurrentFrame.SetPose(Tcw_aruco.inv());
-        }
-        else {
-            // require re-init
-            std::cout << "No valid transform established from ChArUco! Please make sure ChArUco board is visible!" << std::endl;
-            return ;
-        }
-#else
             // Set Frame pose to the origin
             mCurrentFrame.SetPose(cv::Mat::eye(4, 4, CV_32F));
-#endif
 
             // Create KeyFrame
             KeyFrame *pKFini = new KeyFrame(mCurrentFrame, mpMap, mpKeyFrameDB);
@@ -1732,66 +1654,13 @@ void Tracking::PredictingOdom(const double & time_prev, const double & time_curr
 
         ORBmatcher matcher(0.9, true);
 
-#ifdef TIMECOST_VERBOSE
-        timer.tic();
-#endif
         // Update last frame pose according to its reference keyframe
         // Create "visual odometry" points if in Localization Mode
         UpdateLastFrame();
-#ifdef TIMECOST_VERBOSE
-        cout << "Time Cost of Updating Last Frame = " << timer.toc() << endl;
-#endif
-
-        //#ifdef PRED_WITH_ODOM
-        //    cout << "Previous mVelocity = " << endl << mVelocity << endl;
-        //    //
-        //    // NOTE
-        //    // When pre-loading the full odom from file, query the relative motion with the following blcok
-        //    //
-        //    cv::Mat mVelocity_tmp;
-        //    if (PredictRelMotionFromBuffer(mLastFrame.mTimeStamp, mCurrentFrame.mTimeStamp, mVelocity_tmp)) {
-        //        mVelocity = mVelocity_tmp;
-        //    }
-        //    else {
-        //        // do nothing
-        //    }
-        //    //
-        //    cout << "Current mVelocity = " << endl << mVelocity << endl;
-        //#endif
-
-#ifdef PRED_WITH_ODOM
-        // cout << "Previous mVelocity = " << endl << mVelocity << endl;
-        //
-        // NOTE
-        // When connecting to PiPS planner, simply call recall function to query the desired relative motion
-        cv::Mat mVelocity_tmp = cv::Mat(4, 4, CV_32F);
-#ifdef ENABLE_PLANNER_PREDICTION
-                                                                                                                                if (PredictRelMotionFromCallback(mLastFrame.mTimeStamp,
-                                             mCurrentFrame.mTimeStamp,
-                                             mVelocity_tmp)) {
-                // add body to camera transform
-                mVelocity_tmp = (Tb2c * mVelocity_tmp * Tc2b);
-#else
-        if (PredictRelMotionFromBuffer(mLastFrame.mTimeStamp,
-                                       mCurrentFrame.mTimeStamp,
-                                       mVelocity_tmp)) {
-#endif
-            // cout << "mVelocity_tmp = " << endl << mVelocity_tmp << endl;
-            mVelocity = mVelocity_tmp;
-        } else {
-            // do nothing
-        }
-        // cout << "Current mVelocity = " << endl << mVelocity << endl;
-#endif
-
 
         mCurrentFrame.SetPose(mVelocity * mLastFrame.mTcw);
 
         fill(mCurrentFrame.mvpMapPoints.begin(), mCurrentFrame.mvpMapPoints.end(), static_cast<MapPoint *>(NULL));
-
-#ifdef TIMECOST_VERBOSE
-        timer.tic();
-#endif
 
         // Project points seen in previous frame
         int th;
@@ -1807,11 +1676,6 @@ void Tracking::PredictingOdom(const double & time_prev, const double & time_curr
         int nmatches = matcher.SearchByProjection(mCurrentFrame, mLastFrame, th, mSensor == System::MONOCULAR,
                                                   mNumVisibleMpt);
 #endif
-
-#ifdef TIMECOST_VERBOSE
-        cout << "Time Cost of Feature Searching to Last Frame = " << timer.toc() << endl;
-#endif
-
         double time_stereo = 0;
 #ifdef DELAYED_STEREO_MATCHING
         timer.tic();
@@ -1825,11 +1689,7 @@ void Tracking::PredictingOdom(const double & time_prev, const double & time_curr
 #endif
         //
         logCurrentFrame.time_stereo_motion = time_stereo;
-        // cout << "Time Cost of Stereo Matching = " << time_stereo << endl;
 
-#ifdef TIMECOST_VERBOSE
-        timer.tic();
-#endif
         // If few matches, uses a wider window search
         if (nmatches < 20) {
             fill(mCurrentFrame.mvpMapPoints.begin(), mCurrentFrame.mvpMapPoints.end(), static_cast<MapPoint *>(NULL));
@@ -1839,18 +1699,9 @@ void Tracking::PredictingOdom(const double & time_prev, const double & time_curr
 
         if (nmatches < 20)
             return false;
-#ifdef TIMECOST_VERBOSE
-        cout << "Time Cost of Searching for Additional Matches = " << timer.toc() << endl;
-#endif
 
-#ifdef TIMECOST_VERBOSE
-        timer.tic();
-#endif
         // Optimize frame pose with all matches
         Optimizer::PoseOptimization(&mCurrentFrame);
-#ifdef TIMECOST_VERBOSE
-        cout << "Time Cost of Pose Optimization = " << timer.toc() << endl;
-#endif
 
         // Discard outliers
         int nmatchesMap = 0;
@@ -1934,16 +1785,6 @@ void Tracking::PredictingOdom(const double & time_prev, const double & time_curr
         //
         logCurrentFrame.time_stereo_map = time_stereo;
 
-        // Decide if the tracking was succesful
-        // More restrictive if there was a relocalization recently
-        //    if(mCurrentFrame.mnId<mnLastRelocFrameId+mMaxFrames && mnMatchesInliers<50)
-        //        return false;
-
-        //    if(mnMatchesInliers<30)
-        //        return false;
-        //    else
-        //        return true;
-
         if (mCurrentFrame.mnId < mnLastRelocFrameId + mMaxFrames && mnMatchesInliers < 25)
             return false;
 
@@ -1954,8 +1795,6 @@ void Tracking::PredictingOdom(const double & time_prev, const double & time_curr
     }
 
 
-// TODO
-// TODO
 // TODO
 // inject max vol to label the good map points from the rest
     void Tracking::PredictJacobianNextFrame(const double time_for_predict, const size_t pred_horizon) {
@@ -1969,61 +1808,21 @@ void Tracking::PredictingOdom(const double & time_prev, const double & time_curr
             return;
         }
 
-        //    arma::wall_clock timer;
-        //    timer.tic();
-
-        //    // find visible map points
-        //    std::vector<MapPoint*> tmpMapPoints;
-        //    for(vector<KeyFrame*>::iterator itKF=mvpLocalKeyFrames.begin(), itEndKF=mvpLocalKeyFrames.end(); itKF!=itEndKF; itKF++)
-        //    {
-        //        KeyFrame* pKF = *itKF;
-        //        vector<MapPoint*> vpMPs = pKF->GetMapPointMatches();
-
-        //        for(vector<MapPoint*>::iterator itMP=vpMPs.begin(), itEndMP=vpMPs.end(); itMP!=itEndMP; itMP++)
-        //        {
-        //            MapPoint* pMP = *itMP;
-        //            if(!pMP)
-        //                continue;
-        //            if(pMP->mnUsedForLocalMap==mCurrentFrame.mnId)
-        //                continue;
-        //            if(!pMP->isBad()) {
-        //                //                cv::Mat Pw = pMP->GetWorldPos();
-        //                //                if ( mObsHandler->visible_Point_To_Frame(Pw, mObsHandler->kinematic[1].Tcw) == true ) {
-        //                //                    tmpMapPoints.push_back(pMP);
-        //                //                }
-        //                pMP->mnUsedForLocalMap=mCurrentFrame.mnId;
-        //                tmpMapPoints.push_back(pMP);
-        //            }
-        //        }
-        //    }
-        //    //    std::cout << "func RunMapPointsSelection: number of local map points before visibility check = " << tmpMapPoints.size() << std::endl;
-
         double time_used = 0;
         mObsHandler->mMapPoints = &(mCurrentFrame.mvpMapPoints);
 
-        //    // select map points with low score
-        //    //    size_t num_map_point_selected = 4000; // 2000; //
-        //    double time_used = timer.toc();
-
-        //    mObsHandler->mMapPoints = &tmpMapPoints;
         mObsHandler->mKineIdx = pred_horizon;
 
 #ifdef USE_INFO_MATRIX
         mObsHandler->runMatrixBuilding(ORB_SLAM2::MAP_INFO_MATRIX, time_for_predict - time_used, USE_MULTI_THREAD,
                                        true);
 #elif defined USE_HYBRID_MATRIX
-                                                                                                                                mObsHandler->runMatrixBuilding(ORB_SLAM2::MAP_HYBRID_MATRIX, time_for_predict - time_used, USE_MULTI_THREAD, true);
+        mObsHandler->runMatrixBuilding(ORB_SLAM2::MAP_HYBRID_MATRIX, time_for_predict - time_used, USE_MULTI_THREAD, true);
 #elif defined USE_OBSERVABILITY_MATRIX
     // TODO
 #endif
 
-        //    double time_map_bound = timer.toc();
-        //    logCurrentFrame.time_mat_pred = time_map_bound;
-
-        //    std::cout << "func PredictJacobianNextFrame: actual time used  = " << time_map_bound << std::endl;
-
     }
-
 
     void Tracking::BucketingMatches(const Frame *pFrame, vector<GoodPoint> &mpBucketed) {
 
@@ -2439,20 +2238,6 @@ void Tracking::PredictingOdom(const double & time_prev, const double & time_curr
                                                logCurrentFrame.lmk_num_BA) / 2.0;
 
 
-#ifdef ENABLE_PLANNER_PREDICTION
-                                                                                                                                pKF->mvTrel.clear();
-    size_t vn = 1;
-    cv::Mat mVelocity_tmp = cv::Mat(4,4,CV_32F);
-
-    while (vn <= VIRTUAL_FRAME_NUM) {
-      // std::cout << "vn = " << vn << "; mVFrameInteval = " << mVFrameInteval << std::endl;
-      if (PredictRelMotionFromCallback(pKF->mTimeStamp, pKF->mTimeStamp + vn * mVFrameInteval, mVelocity_tmp)) {
-        pKF->mvTrel.push_back(Tb2c * mVelocity_tmp * Tc2b);
-      }
-      vn ++;
-    }
-
-#else
         // NOTE
         // When pre-loading the full odom from file, query the relative motion with the following block
         //
@@ -2502,7 +2287,6 @@ void Tracking::PredictingOdom(const double & time_prev, const double & time_curr
                     break;
             }
         }
-#endif
 
         //    if (mpLocalMapper->mParam.match_ratio_log.size() < NUM_HISTORICAL_BUDGET) {
         //        // no fully loaded yet
@@ -3337,8 +3121,7 @@ void Tracking::PredictingOdom(const double & time_prev, const double & time_curr
 
 // Hash ----------------------------------------------------------------------------
 #ifdef LOCAL_SEARCH_USING_HASHING
-
-                                                                                                                            void Tracking::UpdateLocalPointsByHashing(eLocalMapSet eLocalMap)
+void Tracking::UpdateLocalPointsByHashing(eLocalMapSet eLocalMap)
 {
 #ifdef TRACKING_VERBOSE
     ROS_INFO("Tracking::UpdateReferencePointsByHashing()");

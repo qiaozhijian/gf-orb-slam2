@@ -48,11 +48,6 @@
 
 using namespace std;
 
-// #define MAP_PUBLISH
-
-#define FRAME_WITH_INFO_PUBLISH
-
-
 class ImageGrabber {
 public:
     ImageGrabber(ORB_SLAM2::System *pSLAM) : mpSLAM(pSLAM) {
@@ -74,10 +69,6 @@ public:
 
     ros::Publisher mpCameraPosePublisher, mpCameraPoseInIMUPublisher;
 
-
-#ifdef FRAME_WITH_INFO_PUBLISH
-    ros::Publisher mpFrameWithInfoPublisher;
-#endif
 
 };
 
@@ -187,10 +178,6 @@ int main(int argc, char **argv) {
     igb.mpCameraPoseInIMUPublisher = nh.advertise<geometry_msgs::PoseWithCovarianceStamped>(
             "ORB_SLAM/camera_pose_in_imu", 100);
 
-#ifdef FRAME_WITH_INFO_PUBLISH
-    igb.mpFrameWithInfoPublisher = nh.advertise<sensor_msgs::Image>("ORB_SLAM/frame_with_info", 100);
-#endif
-
     while (ros::ok())
         ros::spin();
     // ros::spin();
@@ -219,13 +206,6 @@ int main(int argc, char **argv) {
 
 
 void ImageGrabber::GrabOdom(const nav_msgs::Odometry::ConstPtr &msg) {
-    /*
-    ROS_INFO("Seq: [%d]", msg->header.seq);
-    ROS_INFO("Position-> x: [%f], y: [%f], z: [%f]", msg->pose.pose.position.x,msg->pose.pose.position.y, msg->pose.pose.position.z);
-    ROS_INFO("Orientation-> x: [%f], y: [%f], z: [%f], w: [%f]", msg->pose.pose.orientation.x, msg->pose.pose.orientation.y, msg->pose.pose.orientation.z, msg->pose.pose.orientation.w);
-    ROS_INFO("Vel-> Linear: [%f], Angular: [%f]", msg->twist.twist.linear.x,msg->twist.twist.angular.z);
-    */
-
     // TODO
     timeStamp = msg->header.stamp.toSec();
 
@@ -242,23 +222,6 @@ void ImageGrabber::GrabOdom(const nav_msgs::Odometry::ConstPtr &msg) {
 }
 
 void ImageGrabber::GrabPath(const nav_msgs::Path::ConstPtr &msg) {
-    /*
-    ROS_INFO("Seq: [%d]", msg->header.seq);
-    ROS_INFO("Position-> x: [%f], y: [%f], z: [%f]", msg->pose.pose.position.x,msg->pose.pose.position.y, msg->pose.pose.position.z);
-    ROS_INFO("Orientation-> x: [%f], y: [%f], z: [%f], w: [%f]", msg->pose.pose.orientation.x, msg->pose.pose.orientation.y, msg->pose.pose.orientation.z, msg->pose.pose.orientation.w);
-    ROS_INFO("Vel-> Linear: [%f], Angular: [%f]", msg->twist.twist.linear.x,msg->twist.twist.angular.z);
-    */
-
-    //    // densify the path
-    //    // create a cubic spline interpolator
-    //    nav_msgs::Path path_dense;
-    //    // pointsPerUnit, skipPoints, useEndConditions, useMiddleConditions);
-    //    path_smoothing::CubicSplineInterpolator csi(double(100.0),
-    //                                                (unsigned int)0,
-    //                                                true,
-    //                                                true);
-    //    csi.interpolatePath(*msg, path_dense);
-
     size_t N = msg->poses.size();
     //    ROS_INFO("Size of path: before [%d] vs. after [%d]", msg->poses.size(), N);
     for (size_t i = 0; i < N; ++i) {
@@ -279,7 +242,7 @@ void ImageGrabber::GrabPath(const nav_msgs::Path::ConstPtr &msg) {
     //    mpDensePathPub.publish(path_dense);
 }
 
-
+cTime tracking(0.0, 0);
 void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr &msgLeft, const sensor_msgs::ImageConstPtr &msgRight) {
 
     double latency_trans = ros::Time::now().toSec() - msgLeft->header.stamp.toSec();
@@ -312,14 +275,8 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr &msgLeft, const s
         cv::Mat imLeft, imRight;
         cv::remap(cv_ptrLeft->image, imLeft, M1l, M2l, cv::INTER_LINEAR);
         cv::remap(cv_ptrRight->image, imRight, M1r, M2r, cv::INTER_LINEAR);
-        //        cv::Mat out;
-        //        cv::hconcat(imLeft, imRight, out);
-        //        cv::imwrite( "./stereo_input.png", out );
 
         pose = mpSLAM->TrackStereo(imLeft, imRight, cv_ptrLeft->header.stamp.toSec());
-        //        cv::Mat image_match;
-        //        mpSLAM->mpTracker->mCurrentFrame.plotStereoMatching(imLeft, imRight, image_match);
-        //        cv::imwrite( "./stereo_matching.png", image_match );
     } else {
         pose = mpSLAM->TrackStereo(cv_ptrLeft->image, cv_ptrRight->image, cv_ptrLeft->header.stamp.toSec());
     }
@@ -328,68 +285,8 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr &msgLeft, const s
         return;
 
     double latency_total = ros::Time::now().toSec() - cv_ptrLeft->header.stamp.toSec();
-// ROS_INFO("Image Transmision Latency: %.03f sec; Total Tracking Latency: %.03f sec", latency_trans, latency_total);
-    cout << "Pose Tracking Latency: " << (latency_total - latency_trans) << " sec." << endl;
-
-/*
-    // std::cout << "broadcast pose!" << std::endl;
-
-    /// broadcast tf
-    // global left handed coordinate system 
-    static cv::Mat pose_prev = cv::Mat::eye(4,4, CV_32F);
-    static cv::Mat world_lh = cv::Mat::eye(4,4, CV_32F);
-    // matrix to flip signs of sinus in rotation matrix, not sure why we need to do that
-    static const cv::Mat flipSign = (cv::Mat_<float>(4,4) <<   1,-1,-1, 1,
-				    -1, 1,-1, 1,
-				    -1,-1, 1, 1,
-				    1, 1, 1, 1);
-
-    //prev_pose * T = pose
-    cv::Mat translation =  (pose * pose_prev.inv()).mul(flipSign);
-    world_lh = world_lh * translation;
-    pose_prev = pose.clone();
-
-    tf::Matrix3x3 tf3d;
-    tf3d.setValue(pose.at<float>(0,0), pose.at<float>(0,1), pose.at<float>(0,2),
-		  pose.at<float>(1,0), pose.at<float>(1,1), pose.at<float>(1,2),
-		  pose.at<float>(2,0), pose.at<float>(2,1), pose.at<float>(2,2));
-
-    tf::Vector3 cameraTranslation_rh( world_lh.at<float>(0,3),world_lh.at<float>(1,3), - world_lh.at<float>(2,3) );
-
-    //rotate 270deg about x and 270deg about x to get ENU: x forward, y left, z up
-    const tf::Matrix3x3 rotation270degXZ(   0, 1, 0,
-					    0, 0, 1,
-					    1, 0, 0);
-
-    static tf::TransformBroadcaster br;
-
-    tf::Matrix3x3 globalRotation_rh = tf3d;
-    tf::Vector3 globalTranslation_rh = cameraTranslation_rh * rotation270degXZ;
-
-    tf::Quaternion tfqt;
-    globalRotation_rh.getRotation(tfqt);
-
-    double aux = tfqt[0];
-    tfqt[0]=-tfqt[2];
-    tfqt[2]=tfqt[1];
-    tfqt[1]=aux;
-
-    tf::Transform transform;
-    transform.setOrigin(globalTranslation_rh);
-    transform.setRotation(tfqt);
-
-    br.sendTransform(tf::StampedTransform(transform, cv_ptrLeft->header.stamp, "map", "camera_pose"));
-  */
-
-
-    /// broadcast campose pose message
-    // camera pose
-    /*
-	tf::Matrix3x3 R( 0,  0,  1,
-			-1,  0,  0,
-			0, -1,  0);
-	tf::Transform T ( R * tf::Matrix3x3( transform.getRotation() ), R * transform.getOrigin() );
-  */
+    cout << "Pose Tracking Latency: " << tracking.update(latency_total - latency_trans)  << " sec. "
+    << cv_ptrLeft->header.stamp.toSec() - msgLeft->header.stamp.toSec() << endl;
 
     cv::Mat Rwc = pose.rowRange(0, 3).colRange(0, 3).t();
     cv::Mat twc = -Rwc * pose.rowRange(0, 3).col(3);
@@ -448,44 +345,6 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr &msgLeft, const s
     camera_odom_in_imu.pose.pose = camera_pose_in_imu;
 
     mpCameraPoseInIMUPublisher.publish(camera_odom_in_imu);
-
-/*
-    tf::Matrix3x3 Ric( 0,  0,  1,
-			-1,  0,  0,
-			0,  -1,  0);
-    
-    tf::Matrix3x3 Rbi( 0,  -1,  0,
-			0,  0,  -1,
-			1,  0,  0);
-    
-	tf::Transform tfTiw ( Ric * tf::Matrix3x3( tfTcw.getRotation() ) * Rbi, Ric * tfTcw.getOrigin() );
-    geometry_msgs::Transform gmTwi;
-	tf::transformTFToMsg(tfTiw, gmTwi);
-	
-	geometry_msgs::Pose camera_pose_in_imu;
-	camera_pose_in_imu.position.x = gmTwi.translation.x;
-	camera_pose_in_imu.position.y = gmTwi.translation.y;
-	camera_pose_in_imu.position.z = gmTwi.translation.z;
-	camera_pose_in_imu.orientation = gmTwi.rotation;
-    
-    geometry_msgs::PoseWithCovarianceStamped camera_odom_in_imu;
-	camera_odom_in_imu.header.frame_id = "odom";
-	camera_odom_in_imu.header.stamp = cv_ptrLeft->header.stamp;
-	camera_odom_in_imu.pose.pose = camera_pose_in_imu;
-    
-	mpCameraPoseInIMUPublisher.publish(camera_odom_in_imu);
-*/
-
-#ifdef FRAME_WITH_INFO_PUBLISH
-    if (mpSLAM != NULL && mpSLAM->mpFrameDrawer != NULL) {
-        cv::Mat fr_info_cv = mpSLAM->mpFrameDrawer->DrawFrame();
-        cv_bridge::CvImage out_msg;
-        out_msg.header = cv_ptrLeft->header; // Same timestamp and tf frame as input image
-        out_msg.encoding = sensor_msgs::image_encodings::BGR8; // Or whatever
-        out_msg.image = fr_info_cv; // Your cv::Mat
-        mpFrameWithInfoPublisher.publish(out_msg.toImageMsg());
-    }
-#endif
 
 
 }

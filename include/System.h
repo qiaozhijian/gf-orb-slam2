@@ -42,6 +42,20 @@
 #include "Util.hpp"
 #include "Hashing.h"
 
+class cTime
+{
+public:
+    cTime(double sum, uint32_t cnt):sum(sum),cnt(cnt){}
+    double update(double time)
+    {
+        sum = sum + time;
+        cnt++;
+        return sum/cnt;
+    }
+    double sum;
+    uint32_t cnt;
+};
+
 namespace ORB_SLAM2
 {
 

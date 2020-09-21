@@ -6,7 +6,8 @@ import time
 import signal
 
 # SeqNameList = {'01':'2020-07-26-19-47-34'};
-SeqNameList = {'07':'2020-08-12-16-41-28'};
+SeqNameList = {'02':'2020-07-26-19-49-21'};
+# SeqNameList = {'07':'2020-08-12-16-41-28'};
 # SeqNameList = {'08':'2020-08-12-16-47-23'};
 
 Result_root = '/media/qzj/Document/grow/research/slamDataSet/sweepRobot/round3/GF_ORB2_Stereo_Baseline/'
@@ -28,8 +29,8 @@ class bcolors:
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
 
-subprocess.Popen('roscore', shell=True)
-time.sleep(2)
+# subprocess.Popen('roscore', shell=True)
+# time.sleep(2)
 
 # subprocess.Popen('rosrun rviz rviz -d /media/qzj/Software/code/catkin_ws/src/gf_orb_slam2/rviz/viz_Map3D.rviz', shell=True)
 
@@ -68,7 +69,7 @@ for ri, num_gf in enumerate(Number_GF_List):
             cmd_slam   = str(sourceRos + 'rosrun gf_orb_slam2 Stereo ' + File_Vocab + ' ' + File_Setting + ' ' + str(int(num_gf)) + ' false true /cam0/image_raw /cam1/image_raw ' + File_traj)
             # no viz
             # cmd_slam   = str('rosrun gf_orb_slam2 Stereo ' + File_Vocab + ' ' + File_Setting + ' ' + str(int(num_gf)) + ' false false /cam0/image_raw /cam1/image_raw ' + File_traj)
-            cmd_rosbag = 'rosbag play --pause ' + File_rosbag # + ' -r 0.3' # + ' -u 20'
+            cmd_rosbag = 'rosbag play --pause --clock ' + File_rosbag # + ' -r 0.3' # + ' -u 20'
 
             print(bcolors.WARNING + "cmd_slam: \n"   + cmd_slam   + bcolors.ENDC)
             print(bcolors.WARNING + "cmd_rosbag: \n" + cmd_rosbag + bcolors.ENDC)
@@ -81,7 +82,7 @@ for ri, num_gf in enumerate(Number_GF_List):
 
             print(bcolors.OKGREEN + "Launching rosbag" + bcolors.ENDC)
             # 开启一个线程,并等待
-            proc_bag = subprocess.call(cmd_rosbag, shell=True)
+            # proc_bag = subprocess.call(cmd_rosbag, shell=True)
 
             print(bcolors.OKGREEN + "Finished rosbag playback, kill the process" + bcolors.ENDC)
             subprocess.call('rosnode kill Stereo', shell=True)

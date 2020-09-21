@@ -56,53 +56,6 @@ using namespace Eigen;
 
 #include <mutex>
 
-
-/* --- options of initialization --- */
-// #define INIT_WITH_ARUCHO
-
-
-/* --- options for ground truth generation, by running at a slow rate and additional optimization iterations --- */
-// #define GROUND_TRUTH_GEN_MODE
-
-
-/* --- options for outdoor challenging sequences such as RobotCar and XWing --- */
-// #define ENABLE_WHITE_BALANCE
-// #define ENABLE_LARGE_SEARCH_WINDOW
-
-
-/* --- options of enabling anticipation in motion-based tracking --- */
-//
-// NOTE
-// For simulating closed-loop performance with open-loop benchmarks
-// By enabling PRED_WITH_ODOM, the GT trajectory is loaded and purturbed 
-// with random error.  It is then utilized as pose prediction (replacement 
-// of constant motion model) in tracking thread.
-//
-#define PRED_WITH_ODOM
-
-/* --- options of anticipating poses with closed-loop planner  --- */
-//
-// NOTE
-// For closed-loop navigation application ONLY
-// By ENABLE_PLANNER_PREDICTION, please make sure the the trajectory state predictor 
-// package is included in your catkin workspace:
-// https://github.gatech.edu/ivabots/trajectory_state_predictor
-// Otherwise, you might write your own predictor by grabbing output from the controller
-//
-//#define ENABLE_PLANNER_PREDICTION
-
-#ifdef ENABLE_PLANNER_PREDICTION
-  #include <trajectory_state_predictor/trajectory_state_predictor.h>
-#endif
-
-/* --- options of key-frame insert condition --- */
-// #define SPARSE_KEYFRAME_COND
-
-
-/* --- options of baseline methods --- */
-// #define ORB_SLAM_BASELINE
-
-
 /* --- options to priortize feature matching wrt local map --- */
 #ifndef ORB_SLAM_BASELINE
 
@@ -408,18 +361,6 @@ protected:
     bool PredictRelMotionFromBuffer(const double & time_prev, const double & time_curr,
                                     cv::Mat & T_rel);
 
-#ifdef ENABLE_PLANNER_PREDICTION
-    inline bool PredictRelMotionFromCallback(const double & time_curr, const double & time_next,
-                                             cv::Mat & T_rel) {
-      if (!mpStatePred || time_next <= time_curr) {
-	std::cout << "func PredictRelMotionFromCallback: invalid input param!" << std::endl;
-	std::cout << setprecision(8) << "time_curr = " << time_curr << "; time_next = " << time_next  << std::endl;
-        return false;
-      }
-      return mpStatePred->getRelativePose(time_curr, time_next-time_curr, T_rel);
-    }
-#endif
-
     bool Relocalization();
 
     void UpdateLocalMap();
@@ -542,10 +483,6 @@ protected:
     bool mbRGB;
 
     std::list<MapPoint *> mlpTemporalPoints;
-
-#ifdef ENABLE_PLANNER_PREDICTION
-    TrajectoryStatePredictor * mpStatePred;
-#endif
     
     // planned odom for anticipation in good graph
     // 1st: timeStamp;   2nd: mTcw
@@ -556,12 +493,6 @@ protected:
     //    int budget_matching_in_track = 150; // 60; // 100; //
 
     std::ofstream f_realTimeTrack;
-    
-    //
-#ifdef INIT_WITH_ARUCHO 
-    ChArUco * mpCharuco;
-    cv::Mat mTw_align;
-#endif
     
     std::mutex mMutexOdomBuf;
     std::vector<OdometryLog> mvOdomBuf;

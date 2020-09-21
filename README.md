@@ -1,8 +1,13 @@
 1. 屏蔽轨迹预测
 2. 双目校正屏蔽,euroc的文件最后生成的畸变参数也被改了,原本为0,并且程序里使用自己的去畸变逻辑
     + 如果想恢复原来的,除了使能校正,还要把程序里自己的"选择双目匹配"去掉
-
-
+3.
++ 不用立体匹配加速 
+    + ORB extraction 0.022186; Init tracking 0.003076; Map tracking 0.006355; Post proc. 0.000532
+           Pose Tracking Latency: 0.035068
++ 用立体匹配加速
+    + ORB extraction 0.0137092; Init tracking 0.00201828; Map tracking 0.00243329; Post proc. 0.000483895
+      Pose Tracking Latency: 0.0190633
 ![](https://github.com/ivalab/demo_gif/blob/master/office_slam_demo.gif)
 
 # A cost-efficient, heavily-modified ORB-SLAM2 (tested on Ubuntu 16.04 + ROS Kinetic)
