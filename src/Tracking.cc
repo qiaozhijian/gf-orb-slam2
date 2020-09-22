@@ -189,36 +189,18 @@ namespace ORB_SLAM2 {
             R_r.copyTo(mR_right);
             P_r.copyTo(mP_right);
 
-#ifndef ALTER_STEREO_MATCHING
-                                                                                                                                    //
-#ifdef USE_FISHEYE_DISTORTION
-        cv::fisheye::initUndistortRectifyMap(K_l, D_l, R_l, P_l.rowRange(0,3).colRange(0,3), cv::Size(cols_l,rows_l), CV_32F, mMap1_l, mMap2_l);
-        cv::fisheye::initUndistortRectifyMap(K_r, D_r, R_r, P_r.rowRange(0,3).colRange(0,3), cv::Size(cols_r,rows_r), CV_32F, mMap1_r, mMap2_r);
-#else
-        cv::initUndistortRectifyMap(K_l, D_l, R_l, P_l.rowRange(0,3).colRange(0,3), cv::Size(cols_l,rows_l), CV_32F, mMap1_l, mMap2_l);
-        cv::initUndistortRectifyMap(K_r, D_r, R_r, P_r.rowRange(0,3).colRange(0,3), cv::Size(cols_r,rows_r), CV_32F, mMap1_r, mMap2_r);
-#endif
-
-#endif
-
             cout << endl << "Camera Parameters: " << endl;
             cout << "- fx: " << mK.at<float>(0, 0) << endl;
             cout << "- fy: " << mK.at<float>(1, 1) << endl;
             cout << "- cx: " << mK.at<float>(0, 2) << endl;
             cout << "- cy: " << mK.at<float>(1, 2) << endl;
-#ifdef USE_FISHEYE_DISTORTION
-                                                                                                                                    cout << "- k1: " << mDistCoef.at<float>(0) << endl;
-        cout << "- k2: " << mDistCoef.at<float>(1) << endl;
-        cout << "- k3: " << mDistCoef.at<float>(2) << endl;
-        cout << "- k4: " << mDistCoef.at<float>(3) << endl;
-#else
+
             cout << "- k1: " << mDistCoef.at<float>(0) << endl;
             cout << "- k2: " << mDistCoef.at<float>(1) << endl;
             if (mDistCoef.rows == 5)
                 cout << "- k3: " << mDistCoef.at<float>(4) << endl;
             cout << "- p1: " << mDistCoef.at<float>(2) << endl;
             cout << "- p2: " << mDistCoef.at<float>(3) << endl;
-#endif
 
             mThDepth = mbf * (float) fSettings["ThDepth"] / fx;
             cout << endl << "Depth Threshold (Close/Far Points): " << mThDepth << endl;
@@ -231,20 +213,8 @@ namespace ORB_SLAM2 {
         if (sensor == System::STEREO || sensor == System::RGBD)
             mObsHandler->camera.bf = mbf;
 
-#ifdef SPARSE_KEYFRAME_COND
-                                                                                                                                // Sparse config for key-frames, suited for large-scale (outdoor) environment
-    mMinFrames = camera_fps;
-    mMaxFrames = camera_fps * 5; // 10;
-#else
-        // Dense (default) config for key-frames, suited for small-scale environment
         mMinFrames = 0;
         mMaxFrames = camera_fps;
-        //    mMaxFrames = 18*camera_fps/30;
-        //  #ifdef GROUND_TRUTH_GEN_MODE
-        //      mMaxFrames = camera_fps * 0.2;
-        //  #endif
-
-#endif
 
 #ifdef ENABLE_ANTICIPATION_IN_GRAPH
         //NOTE for fast-mo simulation, the budget could be less than real-time value,
@@ -253,7 +223,6 @@ namespace ORB_SLAM2 {
         //
         //NOTE for real-time navigation, simply set the budget as 1/camera_fps will do
         mVFrameInteval = VIRTUAL_FRAME_STEP / camera_fps;
-
 #endif
 
         mFrameAfterInital = 0;
@@ -318,9 +287,6 @@ namespace ORB_SLAM2 {
 
 
     Tracking::~Tracking() {
-#ifdef REALTIME_TRAJ_LOGGING
-        f_realTimeTrack.close();
-#endif
     }
 
     void Tracking::SetRealTimeFileStream(string fNameRealTimeTrack) {
@@ -393,13 +359,6 @@ namespace ORB_SLAM2 {
         cv::Mat imGrayRight = imRectRight;
 
 #endif
-
-#ifndef ALTER_STEREO_MATCHING
-                                                                                                                                // undistort the image as in the original ORB pipeline
-    cv::remap(mImGray, mImGray, mMap1_l, mMap2_l, cv::INTER_LINEAR);
-    cv::remap(imGrayRight, imGrayRight, mMap1_r, mMap2_r, cv::INTER_LINEAR);
-#endif
-
         logCurrentFrame.time_rectification = timer_mod.toc();
 
         timer_mod.tic();
@@ -693,14 +652,14 @@ void Tracking::PredictingOdom(const double & time_prev, const double & time_curr
                     if (mVelocity.empty() || mCurrentFrame.mnId < mnLastRelocFrameId + 2) {
                         timer_mod.tic();
                         bOK = TrackReferenceKeyFrame();
-                        //                    cout << "number of visible map at TrackReferenceKeyFrame: " << mNumVisibleMpt << endl;
+
                         if (!bOK)
                             cout << "Track loss at func TrackReferenceKeyFrame !!!" << endl;
                         logCurrentFrame.time_track_frame = timer_mod.toc();
                     } else {
                         timer_mod.tic();
                         bOK = TrackWithMotionModel();
-                        //                    cout << "number of visible map at TrackWithMotionModel: " << mNumVisibleMpt << endl;
+
                         if (!bOK)
                             cout << "Track loss at func TrackWithMotionModel !!!" << endl;
                         logCurrentFrame.time_track_motion = timer_mod.toc();
@@ -836,7 +795,6 @@ void Tracking::PredictingOdom(const double & time_prev, const double & time_curr
             // If tracking were good, check if we insert a keyframe
             if (bOK) {
                 timer_mod.tic();
-
                 // Update motion model
                 if (!mLastFrame.mTcw.empty()) {
                     cv::Mat LastTwc = cv::Mat::eye(4, 4, CV_32F);
@@ -846,56 +804,9 @@ void Tracking::PredictingOdom(const double & time_prev, const double & time_curr
                 } else
                     mVelocity = cv::Mat();
 
-                // VIZ only
-                //        if (mCurrentFrame.mnId % 20 == 0)
-                // PlotFrameWithPointMatches();
-
                 mpMapDrawer->SetCurrentCameraPose(mCurrentFrame.mTcw);
 
                 logCurrentFrame.time_update_motion = timer_mod.toc();
-
-                //            timer_mod.tic();
-
-                // NOTE
-                // When good feature being used, only the selected inliers will be sent into local BA
-
-                //            // Clean VO matches
-                //            for(int i=0; i<mCurrentFrame.N; i++)
-                //            {
-                //                MapPoint* pMP = mCurrentFrame.mvpMapPoints[i];
-                //                if(pMP)
-                //                    if(pMP->Observations()<1)
-                //                    {
-                //                        mCurrentFrame.mvbOutlier[i] = false;
-                //                        mCurrentFrame.mvpMapPoints[i]=static_cast<MapPoint*>(NULL);
-                //                    }
-                //            }
-
-                //            // Delete temporal MapPoints
-                //            for(list<MapPoint*>::iterator lit = mlpTemporalPoints.begin(), lend =  mlpTemporalPoints.end(); lit!=lend; lit++)
-                //            {
-                //                MapPoint* pMP = *lit;
-                //                delete pMP;
-                //            }
-                //            mlpTemporalPoints.clear();
-
-                //            // Check if we need to insert a new keyframe
-                //            if(NeedNewKeyFrame()) {
-                //                CreateNewKeyFrame();
-                //                cout << "New key frame inserted!" << endl;
-                //            }
-
-                //            // We allow points with high innovation (considererd outliers by the Huber Function)
-                //            // pass to the new keyframe, so that bundle adjustment will finally decide
-                //            // if they are outliers or not. We don't want next frame to estimate its position
-                //            // with those points so we discard them in the frame.
-                //            for(int i=0; i<mCurrentFrame.N;i++)
-                //            {
-                //                if(mCurrentFrame.mvpMapPoints[i] && mCurrentFrame.mvbOutlier[i])
-                //                    mCurrentFrame.mvpMapPoints[i]=static_cast<MapPoint*>(NULL);
-                //            }
-
-                //            logCurrentFrame.time_create_kf = timer_mod.toc();
             }
 
             // Reset if the camera get lost soon after initialization
@@ -928,58 +839,9 @@ void Tracking::PredictingOdom(const double & time_prev, const double & time_curr
             // the creation of last frame should be postponed after the additional matching.
             //        mLastFrame = Frame(mCurrentFrame);
         }
-
-        // Store frame pose information to retrieve the complete camera trajectory afterwards.
-        //    if(!mCurrentFrame.mTcw.empty())
-        //    {
-        //        cv::Mat Tcr = mCurrentFrame.mTcw*mCurrentFrame.mpReferenceKF->GetPoseInverse();
-        //        mlRelativeFramePoses.push_back(Tcr);
-        //        mlpReferences.push_back(mpReferenceKF);
-        //        mlFrameTimes.push_back(mCurrentFrame.mTimeStamp);
-        //        mlbLost.push_back(mState==LOST);
-        //    }
-        //    else
-        //    {
-        //        // This can happen if tracking is lost
-        //        mlRelativeFramePoses.push_back(mlRelativeFramePoses.back());
-        //        mlpReferences.push_back(mlpReferences.back());
-        //        mlFrameTimes.push_back(mlFrameTimes.back());
-        //        mlbLost.push_back(mState==LOST);
-        //    }
-
-#ifdef REALTIME_TRAJ_LOGGING
-        if (!mCurrentFrame.mTcw.empty()) {
-            // Write the real time tracking result to file
-            FramePose poseTmp = FramePose(mCurrentFrame.mTimeStamp, mCurrentFrame.mTcw);
-
-            double timestamp = poseTmp.time_stamp;
-            cv::Mat Homm = poseTmp.homm;
-            cv::Mat R = Homm.rowRange(0, 3).colRange(0, 3).t();
-            cv::Mat t = -R * Homm.rowRange(0, 3).col(3);
-
-            //
-            // TODO
-            // check the output R & T are identical with the ones send to visualizer
-            //
-            //        std::cout << twc - t << std::endl;
-            //        std::cout << Rwc - R << std::endl;
-
-            vector<float> q = ORB_SLAM2::Converter::toQuaternion(R);
-
-            f_realTimeTrack << setprecision(6) << timestamp << setprecision(7)
-                            << " " << t.at<float>(0) << " " << t.at<float>(1) << " " << t.at<float>(2)
-                            << " " << q[0] << " " << q[1] << " " << q[2] << " " << q[3] << endl;
-
-        }
-#endif
-        // unlock the map states?
-        //    lock.unlock();
-
         //
         timer_mod.tic();
         if (mState == OK) {
-            //        UpdateReferenceKeyFrames();
-
 #ifdef GROUND_TRUTH_GEN_MODE
                                                                                                                                     double timeCost_sofar = timer_all.toc() + logCurrentFrame.time_ORB_extraction,
                 timeCost_rest = 1.0 / (camera_fps * 0.2) - timeCost_sofar - 0.002;
@@ -991,11 +853,6 @@ void Tracking::PredictingOdom(const double & time_prev, const double & time_curr
 #else
             double timeCost_sofar = timer_all.toc() + logCurrentFrame.time_ORB_extraction,
                     timeCost_rest = 1.0 / (camera_fps) - timeCost_sofar - 0.002;
-            // Compute the good feature for local Map
-            // std::cout << "======= total time to proc 1 frame = " << 1.0 / (camera_fps)
-            // 	  << "; already taken " << timeCost_sofar
-            // 	  << " with ORB time " << logCurrentFrame.time_ORB_extraction
-            // 	  << " ; left " << timeCost_rest << " =======" << std::endl;
 #endif
 
             if (mObsHandler != NULL) {
@@ -1014,13 +871,6 @@ void Tracking::PredictingOdom(const double & time_prev, const double & time_curr
             //  set pred_horizon to 1, so that the NEXT pose is used to compute jacobian
             std::thread thread_Predict(&Tracking::PredictJacobianNextFrame, this, timeCost_rest, 1);
 #endif
-
-            // Check if we need to insert a new keyframe
-            //#ifdef DELAYED_STEREO_MATCHING
-            //        if(NeedNewKeyFrame_Experimental()) {
-            //#else
-            //        if(NeedNewKeyFrame()) {
-            //#endif
 
 #ifdef SPARSE_KEYFRAME_COND
             if(NeedNewKeyFrame_Temp()) {
@@ -1321,13 +1171,6 @@ void Tracking::PredictingOdom(const double & time_prev, const double & time_curr
             ORBmatcher matcher(0.9, true);
             int nmatches = matcher.SearchForInitialization(mInitialFrame, mCurrentFrame, mvbPrevMatched, mvIniMatches,
                                                            SRH_WINDOW_SIZE_INIT);
-            /*
-#ifdef ENABLE_LARGE_SEARCH_WINDOW
-    int nmatches = matcher.SearchForInitialization(mInitialFrame,mCurrentFrame,mvbPrevMatched,mvIniMatches,3*SRH_WINDOW_SIZE_INIT);
-#else
-    int nmatches = matcher.SearchForInitialization(mInitialFrame,mCurrentFrame,mvbPrevMatched,mvIniMatches,SRH_WINDOW_SIZE_INIT);
-#endif
-*/
 
             // Check if there are enough correspondences
             if (nmatches < THRES_INIT_MPT_NUM) {
@@ -1669,13 +1512,9 @@ void Tracking::PredictingOdom(const double & time_prev, const double & time_curr
             th = 15;
         else
             th = 7;
-        //    int nmatches = matcher.SearchByProjection(mCurrentFrame,mLastFrame,th,mSensor==System::MONOCULAR);
-#ifdef ENABLE_LARGE_SEARCH_WINDOW
-        int nmatches = matcher.SearchByProjection(mCurrentFrame, mLastFrame, th * 3, mSensor == System::MONOCULAR, mNumVisibleMpt);
-#else
+
         int nmatches = matcher.SearchByProjection(mCurrentFrame, mLastFrame, th, mSensor == System::MONOCULAR,
                                                   mNumVisibleMpt);
-#endif
         double time_stereo = 0;
 #ifdef DELAYED_STEREO_MATCHING
         timer.tic();
@@ -2229,24 +2068,16 @@ void Tracking::PredictingOdom(const double & time_prev, const double & time_curr
         }
 
 #ifdef ENABLE_ANTICIPATION_IN_GRAPH
-
         // only update visible_mpt_num at this point
         pKF->mNumVisibleMpt = mNumVisibleMpt;
-
         // Update average matching number
         mpLocalMapper->mParam.avg_match_num = (mpLocalMapper->mParam.avg_match_num +
                                                logCurrentFrame.lmk_num_BA) / 2.0;
-
-
         // NOTE
         // When pre-loading the full odom from file, query the relative motion with the following block
-        //
         pKF->mvTrel.clear();
         size_t Nodom = mvOdomBuf.size(), vn = 0;
-        // cout << "Nodom = " << Nodom << endl;
-        //    cout << setprecision(12) << "pKF->mTimeStamp + VIRTUAL_KF_INTEVAL = " << pKF->mTimeStamp + VIRTUAL_KF_INTEVAL << endl;
-        //    cout << setprecision(12) << "mvOdomPlanned[0].first = " << mvOdomPlanned[0].first << endl;
-        //    cout << setprecision(12) << "mvOdomPlanned.back().first = " << mvOdomPlanned.back().first << endl;
+        // 这里不使用轨迹预测，所以不用
         if (!mvOdomBuf.empty() &&
             pKF->mTimeStamp + mVFrameInteval >= mvOdomBuf[0].time_stamp &&
             pKF->mTimeStamp + mVFrameInteval <= mvOdomBuf.back().time_stamp) {
@@ -2254,8 +2085,6 @@ void Tracking::PredictingOdom(const double & time_prev, const double & time_curr
             cv::Mat Twc_base;
             cv::Mat T_tmp;
             for (size_t i = mOdomLBAIdx; i < Nodom; ++i) {
-                // cout << setprecision(12) << mvOdomBuf[i].time_stamp << " vs. " << pKF->mTimeStamp + vn * mVFrameInteval << endl;
-                // find the closest odom to pKF->mTimeStamp + VIRTUAL_KF_INTEVAL * (vn+1)
                 if (mvOdomBuf[i].time_stamp >= pKF->mTimeStamp + vn * mVFrameInteval) {
                     if (vn == 0) {
                         mOdomLBAIdx = i;
@@ -2265,43 +2094,18 @@ void Tracking::PredictingOdom(const double & time_prev, const double & time_curr
                         Twc_base = cv::Mat::eye(4, 4, CV_32F);
                         Rwc.copyTo(Twc_base.rowRange(0, 3).colRange(0, 3));
                         twc.copyTo(Twc_base.rowRange(0, 3).col(3));
-                        //                    Tcw_base.rowRange(0, 3).colRange(0, 3) = mvOdomPlanned[i].second.rowRange(0, 3).colRange(0, 3).t();
-                        //                    Tcw_base.rowRange(0, 3).col(3) = -mvOdomPlanned[i].second.rowRange(0, 3).colRange(0, 3) * mvOdomPlanned[i].second.rowRange(0, 3).col(3);
-
                         vn++;
                         continue;
                     }
-
                     // Trel = Tcw_current * Twc_prev
                     cv::Mat mTrel = mvOdomBuf[i].Tcw * Twc_base;
                     pKF->mvTrel.push_back(mTrel);
                     vn++;
-                    //                std::cout << setprecision(15) << "timeStamp planned: " << mvOdomPlanned[mOdomLBAIdx].first << " to " << mvOdomPlanned[i].first << std::endl;
-                    //                std::cout << setprecision(15) << "timeStamp actual: " << pKF->mTimeStamp << std::endl;
-                    //                std::cout << "mVel planned: " << std::endl
-                    //                          << mTrel << std::endl;
-                    //                std::cout << "mVel actual: " << std::endl
-                    //                          << mVelocity << std::endl;
                 }
                 if (vn > VIRTUAL_FRAME_NUM)
                     break;
             }
         }
-
-        //    if (mpLocalMapper->mParam.match_ratio_log.size() < NUM_HISTORICAL_BUDGET) {
-        //        // no fully loaded yet
-        //        mpLocalMapper->mParam.match_ratio_log.push_back(double(logCurrentFrame.lmk_num_BA) / double(mNumVisibleMpt));
-        //        mpLocalMapper->mParam.match_ratio_idx ++;
-        //    }
-        //    else {
-        //        // start ring buffering
-        //        mpLocalMapper->mParam.match_ratio_log[mpLocalMapper->mParam.match_ratio_idx % NUM_HISTORICAL_BUDGET] =
-        //                double(logCurrentFrame.lmk_num_BA) / double(mNumVisibleMpt);
-        //        mpLocalMapper->mParam.match_ratio_idx ++;
-        //    }
-        //    std::cout << "num of map used: " << mNumVisibleMpt
-        //              << "; num of matching found: " << logCurrentFrame.lmk_num_BA
-        //              << "; matching ratio: " << double(logCurrentFrame.lmk_num_BA) / double(mNumVisibleMpt) << std::endl;
 #endif
 
         mpLocalMapper->InsertKeyFrame(pKF);
@@ -2361,10 +2165,6 @@ void Tracking::PredictingOdom(const double & time_prev, const double & time_curr
 
         int nMatched = matcher.SearchByProjection_Budget(F, mObsHandler->mLeftMapPoints, th,
                                                          time_for_search - time_so_far);
-
-        //    std::cout << "func SearchAdditionalMatchesInFrame: found " << nMatched
-        //              << " additional matches from " << mObsHandler->mLeftMapPoints.size()
-        //              << " map points, with total time cost = " << timer.toc() << std::endl;
 
         logCurrentFrame.lmk_num_BA += nMatched;
 
@@ -2431,11 +2231,6 @@ void Tracking::PredictingOdom(const double & time_prev, const double & time_curr
                                                                                                                                             if (pMP->updateAtFrameId == mCurrentFrame.mnId)
                     mCurrentInfoMat += pMP->ObsMat;
 #endif
-
-                    //#ifdef ENABLE_ANTICIPATION_IN_BUDGET
-                    //                mNumVisibleMpt ++;
-                    //#endif
-
                     nAlreadyMatched += 2;
                 }
             }
@@ -2634,11 +2429,6 @@ void Tracking::PredictingOdom(const double & time_prev, const double & time_curr
         // If the camera has been relocalised recently, perform a coarser search
         if(mCurrentFrame.mnId<mnLastRelocFrameId+2)
             th=5;
-
-#ifdef ENABLE_LARGE_SEARCH_WINDOW
-        th *= 3;
-#endif
-
         nMatched = matcher.SearchByProjection(mCurrentFrame,mvpLocalMapPoints,th);
 
 #endif
@@ -2712,27 +2502,8 @@ void Tracking::PredictingOdom(const double & time_prev, const double & time_curr
                 if (pMP->mnTrackReferenceForFrame == mCurrentFrame.mnId)
                     continue;
                 if (!pMP->isBad()) {
-
-#if defined GOOD_FEATURE_MAP_BOUND || defined RANDOM_MAP_BOUND
-                                                                                                                                            //                if (pMP->goodAtFrameId > 0 || mvpLocalMapPoints.size() < 2000) {
-                //                    acceptMapPoint = true;
-                //                }
-                if (pMP->goodAtFrameId >= minFrameId)
-                {
                     mvpLocalMapPoints.push_back(pMP);
                     pMP->mnTrackReferenceForFrame = mCurrentFrame.mnId;
-                }
-                else
-                {
-                    // for those unselected map points, we still keep them and try matching them after current pose being published
-                    mvpLocalAdditionalPoints.push_back(pMP);
-                    pMP->mnTrackReferenceForFrame = mCurrentFrame.mnId;
-                }
-#else
-                    mvpLocalMapPoints.push_back(pMP);
-                    pMP->mnTrackReferenceForFrame = mCurrentFrame.mnId;
-#endif
-
                 }
             }
         }

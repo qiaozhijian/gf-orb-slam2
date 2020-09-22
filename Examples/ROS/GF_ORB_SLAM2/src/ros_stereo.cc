@@ -23,7 +23,7 @@
 #include<algorithm>
 #include<fstream>
 #include<chrono>
-
+#include "Frame.h"
 #include <ros/ros.h>
 #include <cv_bridge/cv_bridge.h>
 #include <message_filters/subscriber.h>
@@ -97,17 +97,15 @@ int main(int argc, char **argv) {
 
     SLAM.SetConstrPerFrame(std::atoi(argv[3]));
 
-
-#ifdef REALTIME_TRAJ_LOGGING
-    std::string fNameRealTimeTrack = std::string(argv[8]) + "_AllFrameTrajectory.txt";
-    std::cout << std::endl << "Saving AllFrame Trajectory to AllFrameTrajectory.txt" << std::endl;
-    SLAM.SetRealTimeFileStream(fNameRealTimeTrack);
-#endif
-
     ImageGrabber igb(&SLAM);
 
     stringstream s2(argv[4]);
     s2 >> boolalpha >> igb.do_rectify;
+#ifdef ALTER_STEREO_MATCHING
+    igb.do_rectify = false;
+#else
+    igb.do_rectify = true;
+#endif
     ROS_INFO("do_rectify: %d", igb.do_rectify);
 
     if (igb.do_rectify) {

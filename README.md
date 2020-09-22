@@ -3,8 +3,15 @@
     + 如果想恢复原来的,除了使能校正,还要把程序里自己的"选择双目匹配"去掉
 3.
 + 不用立体匹配加速 
-    + ORB extraction 0.022186; Init tracking 0.003076; Map tracking 0.006355; Post proc. 0.000532
+    + good feature & good graph
+        + ORB extraction 0.022186; Init tracking 0.003076; Map tracking 0.006355; Post proc. 0.000532
            Pose Tracking Latency: 0.035068
+    + no good feature & good graph
+        + ORB extraction 0.018507; Init tracking 0.001524; Map tracking 0.002748; Post proc. 0.000193
+      Pose Tracking Latency: 0.024881
+    + no good feature & no good graph
+        + ORB extraction 0.016123; Init tracking 0.001324; Map tracking 0.002333; Post proc. 0.000156
+      Pose Tracking Latency: 0.021484
 + 用立体匹配加速
     + ORB extraction 0.0137092; Init tracking 0.00201828; Map tracking 0.00243329; Post proc. 0.000483895
       Pose Tracking Latency: 0.0190633

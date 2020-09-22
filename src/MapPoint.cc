@@ -39,29 +39,20 @@ MapPoint::MapPoint(const cv::Mat &Pos, KeyFrame *pRefKF, Map* pMap):
     Pos.copyTo(mWorldPos);
     mNormalVector = cv::Mat::zeros(3,1,CV_32F);
 
-    // temporalObs
-    ObsScore = -1.0;
-    ObsRank = 0;
-    //
-    matchedAtFrameId = 0;
-    updateAtFrameId = 0;
-    goodAtFrameId = 0;
-    mnUsedForLocalMap = 0;
-    //
-    u_proj = FLT_MAX;
-    v_proj = FLT_MAX;
-
     // MapPoints can be created from Tracking and Local Mapping. This mutex avoid conflicts with id.
     unique_lock<mutex> lock(mpMap->mMutexPointCreation);
     mnId = nNextId++;
 
-// #ifdef ONLINE_TABLE_SELECTION
+    // temporalObs
+    ObsScore = -1.0;
+    updateAtFrameId = 0;
+    //
+    u_proj = FLT_MAX;
+    v_proj = FLT_MAX;
+
     mvbActiveHashTables = std::vector<bool>(NUM_TOTAL_HASHTABLES, false);
-    // mvbActiveHashTables.resize(NUM_TOTAL_HASHTABLES);
-    // std::fill(mvbActiveHashTables.begin(), mvbActiveHashTables.end(), false);
-// #endif
     mvbHashed = std::vector<bool>(NUM_TOTAL_HASHTABLES, false);
-//    mvbQueried = std::vector<bool>(NUM_TOTAL_HASHTABLES, false);
+
 }
 
 MapPoint::MapPoint(const cv::Mat &Pos, Map* pMap, Frame* pFrame, const int &idxF):
@@ -74,18 +65,6 @@ MapPoint::MapPoint(const cv::Mat &Pos, Map* pMap, Frame* pFrame, const int &idxF
     cv::Mat Ow = pFrame->GetCameraCenter();
     mNormalVector = mWorldPos - Ow;
     mNormalVector = mNormalVector / cv::norm(mNormalVector);
-
-    // temporalObs
-    ObsScore = -1.0;
-    ObsRank = 0;
-    //
-    matchedAtFrameId = 0;
-    updateAtFrameId = 0;
-    goodAtFrameId = 0;
-    mnUsedForLocalMap = 0;
-    //
-    u_proj = FLT_MAX;
-    v_proj = FLT_MAX;
 
     cv::Mat PC = Pos - Ow;
     const float dist = cv::norm(PC);
@@ -102,13 +81,15 @@ MapPoint::MapPoint(const cv::Mat &Pos, Map* pMap, Frame* pFrame, const int &idxF
     unique_lock<mutex> lock(mpMap->mMutexPointCreation);
     mnId = nNextId++;
 
-// #ifdef ONLINE_TABLE_SELECTION
+    // temporalObs
+    ObsScore = -1.0;
+    updateAtFrameId = 0;
+    //
+    u_proj = FLT_MAX;
+    v_proj = FLT_MAX;
+
     mvbActiveHashTables = std::vector<bool>(NUM_TOTAL_HASHTABLES, false);
-    // mvbActiveHashTables.resize(NUM_TOTAL_HASHTABLES);
-    // std::fill(mvbActiveHashTables.begin(), mvbActiveHashTables.end(), false);
-// #endif
     mvbHashed = std::vector<bool>(NUM_TOTAL_HASHTABLES, false);
-//    mvbQueried = std::vector<bool>(NUM_TOTAL_HASHTABLES, false);
 }
 
 MapPoint::MapPoint(cv::FileStorage &fs, Map *pMap) : nObs(0), mpReplaced(static_cast<MapPoint *>(NULL))
@@ -161,12 +142,8 @@ MapPoint::MapPoint(cv::FileStorage &fs, Map *pMap) : nObs(0), mpReplaced(static_
 
     // GF related variables
     ObsScore = -1.0;
-    ObsRank = 0;
     //
-    matchedAtFrameId = 0;
     updateAtFrameId = 0;
-    goodAtFrameId = 0;
-    mnUsedForLocalMap = 0;
     //
     u_proj = FLT_MAX;
     v_proj = FLT_MAX;

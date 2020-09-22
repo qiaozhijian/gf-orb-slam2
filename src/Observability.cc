@@ -138,7 +138,6 @@ void Observability::batchStripObsMat_Frame(const int start_idx, const int end_id
 
                 if (TOM.n_rows > 0) {
                     pMP->ObsMat  = TOM;
-                    //                pMP->ObsRank = arma::rank(TOM);
                     pMP->ObsScore = 1.0;
                 }
                 else {

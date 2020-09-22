@@ -56,9 +56,9 @@ using namespace Eigen;
 
 #include <mutex>
 
+#define ORB_SLAM_BASELINE
 /* --- options to priortize feature matching wrt local map --- */
 #ifndef ORB_SLAM_BASELINE
-
     /* --- options of additional search after pose estimation --- */
     #define DELAYED_MAP_MATCHING
 
@@ -91,7 +91,6 @@ using namespace Eigen;
 
     // For low-power devices with 2-cores, disable multi-thread matrix building
     #define USE_MULTI_THREAD        true // false //
-
 #endif
 
 /* --- options to fair comparison wrt other VO pipelines --- */
@@ -99,20 +98,10 @@ using namespace Eigen;
 // time to init tracking with full feature set
 #define TIME_INIT_TRACKING          5 // 10 //
 #define MAX_FRAME_LOSS_DURATION     999 // 5
-//#define INITIALIZE_USING_BASELINE
-
 
 /* --- options of non-necessary viz codes --- */
 // when running on long-term large-scale dataset, this will save us a lot of time!
 #define DISABLE_MAP_VIZ
-
-
-/* --- options of debug --- */
-//#define SIMU_MOTION_BLUR
-//#define TIMECOST_VERBOSE
-//#define LMKNUM_VERBOSE
-#define REALTIME_TRAJ_LOGGING
-
 
 
 namespace ORB_SLAM2

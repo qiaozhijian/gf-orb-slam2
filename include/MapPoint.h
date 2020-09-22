@@ -141,17 +141,12 @@ public:
     arma::mat ObsMat;
     arma::vec ObsVector;
     double ObsScore;
-    int ObsRank;
     //
     float u_proj, v_proj;
     //
-    long unsigned int matchedAtFrameId;
     long unsigned int updateAtFrameId;
-    long unsigned int goodAtFrameId;
-    long unsigned int mnUsedForLocalMap;
 
     static std::mutex mGlobalMutex;
-
 
     long unsigned int mnIdCoVisible;
     long unsigned int mnIdMapHashed;
@@ -160,10 +155,8 @@ public:
     long unsigned int mnIdLoopClosure;
     std::vector<bool> mvbActiveHashTables;
     std::vector<bool> mvbHashed;
-//    std::vector<bool> mvbQueried;
     int mnIdCandidates;
     int mnQueriedScore;
-//    bool queriedByHashing;
 
 protected:    
 

@@ -91,8 +91,7 @@ Frame::Frame(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timeSt
     if(mvKeys.empty())
         return;
 
-    //    cout << "number of keypoints detected: left = " << mvKeys.size() << "; right = " << mvKeysRight.size() << endl;
-
+    mvpMapPoints = vector<MapPoint*>(N,static_cast<MapPoint*>(NULL));
 #ifdef ALTER_STEREO_MATCHING
     //
     UndistortKeyPointsStereo();
@@ -108,8 +107,6 @@ Frame::Frame(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timeSt
     ComputeStereoMatches();
 
 #endif
-
-    mvpMapPoints = vector<MapPoint*>(N,static_cast<MapPoint*>(NULL));
 
     mvbOutlier = vector<bool>(N,false);
     mvbCandidate = vector<bool>(N,true);
@@ -192,8 +189,7 @@ Frame::Frame(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timeSt
     if (mvKeys.empty())
         return;
 
-    //    cout << "number of keypoints detected: left = " << mvKeys.size() << "; right = " << mvKeysRight.size() << endl;
-
+    mvpMapPoints = vector<MapPoint *>(N, static_cast<MapPoint *>(NULL));
 #ifdef ALTER_STEREO_MATCHING
     //
     UndistortKeyPointsStereo();
@@ -209,8 +205,6 @@ Frame::Frame(const cv::Mat &imLeft, const cv::Mat &imRight, const double &timeSt
     ComputeStereoMatches();
 
 #endif
-
-    mvpMapPoints = vector<MapPoint *>(N, static_cast<MapPoint *>(NULL));
 
     mvbOutlier = vector<bool>(N, false);
     mvbCandidate = vector<bool>(N, true);
@@ -682,11 +676,6 @@ void Frame::UndistortKeyPointsStereo()
         return;
     }
 
-    //    cout << "mK = " << mK << endl;
-    //    cout << "mDistCoef = " << mDistCoef << endl;
-    //    cout << "mR = " << mR << endl;
-    //    cout << "mP = " << mP << endl;
-
     // Fill matrix with points
     cv::Mat mat(N,2,CV_32F);
     for(int i=0; i<N; i++)
@@ -696,11 +685,7 @@ void Frame::UndistortKeyPointsStereo()
     }
     // Undistort points 变成N行一列通道为2的mat
     mat=mat.reshape(2);
-#ifdef USE_FISHEYE_DISTORTION
-    cv::fisheye::undistortPoints(mat,mat,mK_ori,mDistCoef,mR,mP);
-#else
     cv::undistortPoints(mat,mat,mK_ori,mDistCoef,mR,mP);
-#endif
     mat=mat.reshape(1);
 
     // Fill undistorted keypoint vector
@@ -712,11 +697,7 @@ void Frame::UndistortKeyPointsStereo()
         kp.pt.y=mat.at<float>(i,1);
         mvKeysUn[i]=kp;
     }
-
-    //    cout << "finish undistort " << N << " left keypoints!" << endl;
-
     /* Right */
-    //
     // Fill matrix with points
     cv::Mat matR(mvKeysRight.size(),2,CV_32F);
     for(int i=0; i<mvKeysRight.size(); i++)
@@ -726,11 +707,7 @@ void Frame::UndistortKeyPointsStereo()
     }
     // Undistort points
     matR=matR.reshape(2);
-#ifdef USE_FISHEYE_DISTORTION
-    cv::fisheye::undistortPoints(matR,matR,mK_right,mDistCoef_right,mR_right,mP_right);
-#else
     cv::undistortPoints(matR,matR,mK_right,mDistCoef_right,mR_right,mP_right);
-#endif
     matR=matR.reshape(1);
 
     // Fill undistorted keypoint vector
@@ -742,8 +719,6 @@ void Frame::UndistortKeyPointsStereo()
         kp.pt.y=matR.at<float>(i,1);
         mvKeysRightUn[i]=kp;
     }
-
-    //    cout << "finish undistort " << mvKeysRight.size() << " right keypoints!" << endl;
 }
 
 void Frame::UndistortKeyPoints()

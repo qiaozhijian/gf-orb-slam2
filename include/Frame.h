@@ -37,7 +37,7 @@
 // no image recitification is required, nor does the subpixel stereo refine is used
 #define ALTER_STEREO_MATCHING
 // only uncomment it for stereo pipeline
-#define DELAYED_STEREO_MATCHING
+//#define DELAYED_STEREO_MATCHING
 
 // For fisheye collected sequences such as TUM VI & MYNT
 // #define USE_FISHEYE_DISTORTION
@@ -51,9 +51,7 @@
 
 
 // For anticipation in good graph
-#define ENABLE_ANTICIPATION_IN_GRAPH
-
-
+//#define ENABLE_ANTICIPATION_IN_GRAPH
 #ifdef ENABLE_ANTICIPATION_IN_GRAPH
 
     // adjust the budget of local BA with anticipation info. on-the-fly
