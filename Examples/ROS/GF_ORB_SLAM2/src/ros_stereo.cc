@@ -72,6 +72,7 @@ public:
 
 };
 
+vector<float> vTimesTrack;
 int main(int argc, char **argv) {
     ros::init(argc, argv, "Stereo");
     ros::start();
@@ -182,6 +183,18 @@ int main(int argc, char **argv) {
 
     cout << "ros_stereo: done with spin!" << endl;
 
+    sort(vTimesTrack.begin(), vTimesTrack.end());
+    float totaltime = 0;
+    for (int ni = 0; ni < vTimesTrack.size(); ni++) {
+        totaltime += vTimesTrack[ni];
+    }
+    cout <<fixed <<setprecision(4);
+    cout << "-------" << endl << endl;
+    cout << "min tracking time: " << vTimesTrack[0] << endl;
+    cout << "max tracking time: " << vTimesTrack[vTimesTrack.size()-1] << endl;
+    cout << "median tracking time: " << vTimesTrack[vTimesTrack.size() / 2] << endl;
+    cout << "mean tracking time: " << totaltime / vTimesTrack.size() << endl;
+
     // Save camera trajectory
     SLAM.SaveKeyFrameTrajectoryTUM(std::string(argv[8]) + "_KeyFrameTrajectory.txt");
     SLAM.SaveTrackingLog(std::string(argv[8]) + "_Log.txt");
@@ -283,8 +296,7 @@ void ImageGrabber::GrabStereo(const sensor_msgs::ImageConstPtr &msgLeft, const s
         return;
 
     double latency_total = ros::Time::now().toSec() - cv_ptrLeft->header.stamp.toSec();
-    cout << "Pose Tracking Latency: " << tracking.update(latency_total - latency_trans)  << " sec. "
-    << cv_ptrLeft->header.stamp.toSec() - msgLeft->header.stamp.toSec() << endl;
+    vTimesTrack.push_back(latency_total - latency_trans);
 
     cv::Mat Rwc = pose.rowRange(0, 3).colRange(0, 3).t();
     cv::Mat twc = -Rwc * pose.rowRange(0, 3).col(3);

@@ -1046,7 +1046,7 @@ void Tracking::PredictingOdom(const double & time_prev, const double & time_curr
         // push the time log of current frame into the vector
         mFrameTimeLog.push_back(logCurrentFrame);
         //    cout << "Done with tracking!" << endl;
-        std::cout << "Time cost break down: " << std::endl
+        std::cout << "Time cost break down: "
                   << "ORB extraction " << time_ORB_extraction.update(logCurrentFrame.time_ORB_extraction)<< "; "
                   << "Init tracking " << time_Init_track.update(logCurrentFrame.time_track_motion + logCurrentFrame.time_track_frame) << "; "
                   << "Map tracking " << time_track_map.update(logCurrentFrame.time_track_map) << "; "

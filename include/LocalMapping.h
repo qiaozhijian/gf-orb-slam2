@@ -34,7 +34,7 @@
 
 //#define LOGGING_KF_LIST
 
-#define LOCAL_BA_TIME_LOGGING
+//#define LOCAL_BA_TIME_LOGGING
 
 
 namespace ORB_SLAM2

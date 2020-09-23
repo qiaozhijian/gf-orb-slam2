@@ -447,7 +447,8 @@ void System::SetConstrPerFrame(const size_t constr_per_frame)
 #ifdef ORB_SLAM_BASELINE
     // baseline only
     // re-create orb extractor with the defined budget per frame
-    mpTracker->updateORBExtractor();
+    //fixme 这里很矛盾，为什么要特征点变成原来的2分之一
+    //mpTracker->updateORBExtractor();
 #endif
     std::cout << "mpTracker constraint adjusted to " << mpTracker->num_good_constr_predef << std::endl;
 }

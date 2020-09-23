@@ -1172,7 +1172,7 @@ int Frame::ComputeStereoMatches_Undistorted(bool isOnline)
 
     if (mvRowIndices.size() != nRows) {
         PrepareStereoCandidates();
-        std::cout << "redo the stereo candidate preparation!" << std::endl;
+        //std::cout << "redo the stereo candidate preparation!" << std::endl;
     }
 
     // Set limits for search
@@ -1323,7 +1323,7 @@ int Frame::ComputeStereoMatches_Undistorted_ByBucketing(bool isOnline)
 
     if (mvRowIndices.size() != nRows) {
         PrepareStereoCandidates();
-        std::cout << "redo the stereo candidate preparation!" << std::endl;
+        //std::cout << "redo the stereo candidate preparation!" << std::endl;
     }
 
     // Set limits for search
